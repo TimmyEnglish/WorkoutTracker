@@ -1,9 +1,4 @@
-﻿using Android.App;
-using Android.OS;
-using Android.Widget;
-using AndroidX.AppCompat.App;
-using System.Collections.Generic;
-using System.Threading.Tasks;
+﻿using AndroidX.AppCompat.App;
 using WorkoutTracker.Data;
 using WorkoutTracker.Models;
 

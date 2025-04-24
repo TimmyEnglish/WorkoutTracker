@@ -10,32 +10,27 @@
         android:id="@+id/txtTemplateName"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Template Name"
-        android:layout_marginBottom="10dp" />
-
-	<Spinner
-        android:id="@+id/spnExercises"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
+        android:hint="Enter Template Name"
+        android:textSize="18sp"/>
 
 	<Button
         android:id="@+id/btnAddExercise"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Add Exercise"
-        android:layout_marginTop="10dp" />
+        android:text="Add Exercises"/>
 
 	<ListView
-        android:id="@+id/lvTemplateExercises"
+        android:id="@+id/lvExercises"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="10dp" />
+        android:divider="@android:color/darker_gray"
+        android:dividerHeight="1dp" />
 
 	<Button
         android:id="@+id/btnSaveTemplate"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Save Template"
-        android:layout_marginTop="10dp" />
+        android:layout_marginTop="20dp"/>
 
 </LinearLayout>

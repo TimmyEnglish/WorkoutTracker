@@ -1,0 +1,56 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:gravity="center"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+	<TextView
+        android:id="@+id/txtExerciseName"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Exercise Name"
+        android:textSize="22sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:paddingBottom="8dp"
+		android:layout_marginTop="40dp" />
+
+	<TextView
+        android:id="@+id/txtSetNumber"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Set X of Y"
+        android:textSize="18sp"
+        android:gravity="center"
+        android:paddingBottom="16dp" />
+
+	<EditText
+        android:id="@+id/edtWeight"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:inputType="numberDecimal"
+        android:hint="Enter weight (kg/lbs)" />
+
+	<EditText
+        android:id="@+id/edtReps"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:inputType="number"
+        android:hint="Enter reps" />
+
+	<Button
+        android:id="@+id/btnNextSet"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Next Set"
+        android:layout_marginTop="16dp" />
+
+	<Button
+        android:id="@id/btnAddExercise"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+		android:layout_marginBottom="20dp"
+    	android:text="Add Exercise"/>
+</LinearLayout>

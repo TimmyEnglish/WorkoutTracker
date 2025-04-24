@@ -1,13 +1,6 @@
-﻿using Android.App;
-using Android.OS;
-using Android.Widget;
-using AndroidX.AppCompat.App;
-using Android.Util;
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
+﻿using AndroidX.AppCompat.App;
 using WorkoutTracker.Data;
-using WorkoutTracker.Models;
+using Android.Content;
 
 namespace WorkoutTracker.Views
 {
@@ -20,8 +13,8 @@ namespace WorkoutTracker.Views
         private ListView? lvWorkoutExercises = null!;
         private List<WorkoutTemplate> templates = new();
         private ArrayAdapter<string> adapter = null!;
-        private List<string> workoutExercisesList = new List<string>();
         private WorkoutTemplate? selectedTemplate;
+
         protected override async void OnCreate(Bundle savedInstanceState)
         {
             base.OnCreate(savedInstanceState);
@@ -32,12 +25,13 @@ namespace WorkoutTracker.Views
             lvWorkoutExercises = FindViewById<ListView>(Resource.Id.lvWorkoutExercises);
 
             db = new DatabaseHelper();
-            selectedTemplate = null;
 
             btnStartWorkout.Click += BtnStartWorkout_Click;
+            spnTemplates.ItemSelected += SpnTemplates_ItemSelected;
 
             await LoadWorkoutTemplates();
         }
+
         private async Task LoadWorkoutTemplates()
         {
             try
@@ -49,28 +43,28 @@ namespace WorkoutTracker.Views
                     Toast.MakeText(this, "No workout templates found. Add one first!", ToastLength.Long).Show();
                     return;
                 }
-                var templateNames = templates.Select(t => t.Name).ToList();
 
+                var templateNames = templates.Select(t => t.Name).ToList();
                 adapter = new ArrayAdapter<string>(this, Android.Resource.Layout.SimpleSpinnerDropDownItem, templateNames);
                 spnTemplates.Adapter = adapter;
+
+                spnTemplates.SetSelection(0);
+                selectedTemplate = templates[0];
+                await LoadWorkoutExercises(selectedTemplate);
             }
             catch (Exception ex)
             {
                 Toast.MakeText(this, "Error loading templates: " + ex.Message, ToastLength.Long).Show();
             }
-            spnTemplates.SetSelection(0);
-            selectedTemplate = templates[0];
-            await LoadWorkoutExercises(selectedTemplate);
         }
+
         private async void SpnTemplates_ItemSelected(object? sender, AdapterView.ItemSelectedEventArgs e)
         {
-            if (templates.Count == 0) return;
-
+            if (templates == null || templates.Count == 0) return;
             selectedTemplate = templates[e.Position];
-            Console.WriteLine($"Selected Template: {selectedTemplate?.Name}, ExerciseSets: {selectedTemplate?.ExerciseSets}");
-
             await LoadWorkoutExercises(selectedTemplate);
         }
+
         private void BtnStartWorkout_Click(object? sender, EventArgs e)
         {
             if (selectedTemplate == null)
@@ -79,12 +73,32 @@ namespace WorkoutTracker.Views
                 return;
             }
 
-            // Start the workout using selectedTemplate (handle this logic)
-            Toast.MakeText(this, $"Starting {selectedTemplate.Name} workout!", ToastLength.Short).Show();
+            string cleanedData = CleanExerciseSetString(selectedTemplate.ExerciseSets);
+            Intent intent = new Intent(this, typeof(WorkoutSessionActivity));
+            intent.PutExtra("ExerciseSets", cleanedData);
+            StartActivity(intent);
         }
+
+        private string CleanExerciseSetString(string exerciseSets)
+        {
+            if (string.IsNullOrEmpty(exerciseSets)) return string.Empty;
+
+            var cleanedEntries = exerciseSets
+                .Split(',')
+                .Select(entry =>
+                {
+                    var parts = entry.Split(':');
+                    return parts.Length >= 2 ? $"{parts[0]}:{parts[1]}" : null;
+                })
+                .Where(x => x != null);
+
+            return string.Join(",", cleanedEntries!);
+        }
+
         private async Task LoadWorkoutExercises(WorkoutTemplate template)
         {
-            lvWorkoutExercises.Adapter = null; // Clear old data
+            if (lvWorkoutExercises == null) return;
+            lvWorkoutExercises.Adapter = null;
 
             var exerciseList = new List<string>();
 
@@ -95,9 +109,11 @@ namespace WorkoutTracker.Views
                 foreach (var entry in setEntries)
                 {
                     var parts = entry.Split(':');
-                    if (parts.Length == 2 && int.TryParse(parts[0], out int exerciseId) && int.TryParse(parts[1], out int setCount))
+                    if (parts.Length >= 2 &&
+                        int.TryParse(parts[0], out int exerciseId) &&
+                        int.TryParse(parts[1], out int setCount))
                     {
-                        var exercise = await db.GetExerciseByIdAsync(exerciseId); // Fetch exercise name
+                        var exercise = await db.GetExerciseByIdAsync(exerciseId);
                         if (exercise != null)
                         {
                             exerciseList.Add($"{exercise.Name} - {setCount} Sets");
@@ -111,9 +127,12 @@ namespace WorkoutTracker.Views
                 exerciseList.Add("No exercises found in this template.");
             }
 
-            var adapter = new ArrayAdapter<string>(this, Android.Resource.Layout.SimpleListItem1, exerciseList);
-            lvWorkoutExercises.Adapter = adapter;
+            RunOnUiThread(() =>
+            {
+                var adapter = new ArrayAdapter<string>(this, Android.Resource.Layout.SimpleListItem1, exerciseList);
+                lvWorkoutExercises.Adapter = adapter;
+                adapter.NotifyDataSetChanged();
+            });
         }
-
     }
 }

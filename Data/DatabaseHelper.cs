@@ -1,11 +1,6 @@
-﻿using Android.App;
-using Android.Util;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Threading.Tasks;
+﻿using Android.Util;
 using SQLite;
-using WorkoutTracker.Models; // Ensure this namespace matches your models
+using WorkoutTracker.Models;
 
 namespace WorkoutTracker.Data
 {
@@ -26,12 +21,11 @@ namespace WorkoutTracker.Data
                 }
             }
         }
-        public DatabaseHelper() // TEMPORARY
+        public DatabaseHelper() 
         {
-            //Log.Debug("DatabaseHelper", $"Database Path: {dbPath}"); 
             if (!_isDatabaseReset)
             {
-                ResetDatabase();
+                ResetDatabase(); // TEMPORARY
                 _isDatabaseReset = true;
             } 
             _database = new SQLiteAsyncConnection(dbPath, SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.Create);

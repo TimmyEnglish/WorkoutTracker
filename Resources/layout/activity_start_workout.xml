@@ -3,28 +3,29 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:gravity="center"
     android:padding="16dp">
 
-	<!-- Workout Template Selection -->
 	<Spinner
         android:id="@+id/spnTemplates"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="10dp" />
+        android:layout_marginBottom="10dp"
+	    android:layout_marginTop="40dp" />
 
-	<!-- List of exercises in the workout -->
 	<ListView
         android:id="@+id/lvWorkoutExercises"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+		android:scrollbars="vertical"
+        android:overScrollMode="always"
         android:layout_marginBottom="10dp" />
 
-	<!-- Start Workout Button -->
 	<Button
         android:id="@+id/btnStartWorkout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+		android:layout_marginBottom="40dp"
         android:text="Start Workout" />
 
 </LinearLayout>

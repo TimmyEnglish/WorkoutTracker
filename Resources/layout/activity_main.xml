@@ -29,10 +29,10 @@
         android:layout_marginTop="10dp" />
 
 	<Button
-        android:id="@+id/btnStartWorkout"
+        android:id="@+id/btnNewWorkout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Start Workout"
+        android:text="New Workout"
         android:layout_marginTop="10dp" />
 
 </LinearLayout>
