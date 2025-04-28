@@ -1,5 +1,7 @@
 ﻿using Android.Content;
+using Android.Views;
 using AndroidX.AppCompat.App;
+using AndroidX.RecyclerView.Widget;
 using WorkoutTracker.Data;
 using WorkoutTracker.Models;
 
@@ -8,143 +10,138 @@ namespace WorkoutTracker.Views
     [Activity(Label = "Workout Session")]
     public class WorkoutSessionActivity : AppCompatActivity
     {
-        private TextView txtExerciseName, txtSetNumber;
-        private EditText edtWeight, edtReps;
-        private Button btnNextSet, btnAddExercise;
-        private List<(int ExerciseId, string ExerciseName, int Sets)> workoutExercises = new();
-        private int currentExerciseIndex = 0, currentSetNumber = 1;
+        private TextView txtNoExercises;
+        private Button btnAddExercise;
+        private Button btnFinishWorkout;
+        private RecyclerView recyclerView;
+        private WorkoutSessionAdapter adapter;
+        private List<WorkoutExerciseEntry> exerciseEntries = new();
 
         protected override async void OnCreate(Bundle savedInstanceState)
         {
             base.OnCreate(savedInstanceState);
             SetContentView(Resource.Layout.activity_workout_session);
 
-            txtExerciseName = FindViewById<TextView>(Resource.Id.txtExerciseName);
-            txtSetNumber = FindViewById<TextView>(Resource.Id.txtSetNumber);
-            edtWeight = FindViewById<EditText>(Resource.Id.edtWeight);
-            edtReps = FindViewById<EditText>(Resource.Id.edtReps);
-            btnNextSet = FindViewById<Button>(Resource.Id.btnNextSet);
+            recyclerView = FindViewById<RecyclerView>(Resource.Id.recyclerFreestyleWorkout);
             btnAddExercise = FindViewById<Button>(Resource.Id.btnAddExercise);
+            btnFinishWorkout = FindViewById<Button>(Resource.Id.btnFinishWorkout);
+            txtNoExercises = FindViewById<TextView>(Resource.Id.txtNoExercises);
 
-            // Load exercises from intent
-            string exerciseData = Intent.GetStringExtra("ExerciseSets");
-            workoutExercises = await ParseExerciseData(exerciseData);
+            string exerciseData = Intent.GetStringExtra("ExerciseSets") ?? string.Empty;
+            exerciseEntries = await LoadExercisesAsync(exerciseData);
 
-            LoadNextSet();
+            adapter = new WorkoutSessionAdapter(exerciseEntries);
+            recyclerView.SetLayoutManager(new LinearLayoutManager(this));
+            recyclerView.SetAdapter(adapter);
 
-            btnNextSet.Click += async (s, e) => await SaveCurrentSet();
-            btnAddExercise.Click += (s, e) => AddExercise();
+            UpdateEmptyState();
+
+            btnAddExercise.Click += (s, e) =>
+            {
+                var intent = new Intent(this, typeof(SelectExerciseActivity));
+                StartActivityForResult(intent, 1000);
+            };
+
+            btnFinishWorkout.Click += async (s, e) => await SaveWorkoutAsync();
         }
-
-        private void AddExercise()
-        {
-            Intent intent = new Intent(this, typeof(SelectExerciseActivity));
-            StartActivityForResult(intent, 100); // Request code 100
-        }
-
-        protected override void OnActivityResult(int requestCode, Result resultCode, Intent data)
+        protected override async void OnActivityResult(int requestCode, Result resultCode, Intent data)
         {
             base.OnActivityResult(requestCode, resultCode, data);
 
-            if (requestCode == 100 && resultCode == Result.Ok)
+            if (requestCode == 1000 && resultCode == Result.Ok)
             {
                 int exerciseId = data.GetIntExtra("ExerciseId", -1);
-                string exerciseName = data.GetStringExtra("ExerciseName");
+                string exerciseName = data.GetStringExtra("ExerciseName") ?? string.Empty;
                 int sets = data.GetIntExtra("Sets", 3);
 
-                workoutExercises.Add((exerciseId, exerciseName, sets));
-                LoadNextSet();
+                if (exerciseId != -1 && !string.IsNullOrEmpty(exerciseName))
+                {
+                    var existingEntry = exerciseEntries.FirstOrDefault(e => e.ExerciseId == exerciseId);
+
+                    if (existingEntry != null)
+                    {
+                        var extraSets = Enumerable.Range(1, sets).Select(_ => new WorkoutSet()).ToList();
+                        existingEntry.Sets.AddRange(extraSets);
+                    }
+                    else
+                    {
+                        var newEntry = new WorkoutExerciseEntry
+                        {
+                            ExerciseId = exerciseId,
+                            ExerciseName = exerciseName,
+                            Sets = Enumerable.Range(1, sets).Select(_ => new WorkoutSet()).ToList()
+                        };
+                        exerciseEntries.Add(newEntry);
+                    }
+
+                    adapter.NotifyDataSetChanged();
+                    UpdateEmptyState();
+                }
             }
         }
-
-        private async Task SaveCurrentSet()
+        private void UpdateEmptyState()
         {
-            if (!double.TryParse(edtWeight.Text, out double weight) || !int.TryParse(edtReps.Text, out int reps))
+            if (exerciseEntries.Count == 0)
             {
-                Toast.MakeText(this, "Please enter valid weight and reps.", ToastLength.Short).Show();
-                return;
-            }
-
-            var (exerciseId, _, totalSets) = workoutExercises[currentExerciseIndex];
-            var exerciseName = workoutExercises[currentExerciseIndex].ExerciseName;
-
-            var logEntry = new WorkoutLog
-            {
-                ExerciseId = exerciseId,
-                ExerciseName = exerciseName,
-                Reps = reps,
-                Weight = weight,
-                Date = DateTime.Now
-            };
-
-            await DatabaseHelper.Instance.AddWorkoutLogAsync(logEntry);
-
-            if (currentSetNumber < totalSets)
-            {
-                currentSetNumber++;
+                txtNoExercises.Visibility = ViewStates.Visible;
             }
             else
             {
-                currentSetNumber = 1;
-                currentExerciseIndex++;
+                txtNoExercises.Visibility = ViewStates.Gone;
             }
-
-            LoadNextSet();
         }
-
-        private void LoadNextSet()
+        private async Task<List<WorkoutExerciseEntry>> LoadExercisesAsync(string exerciseData)
         {
-            if (workoutExercises.Count == 0)
-            {
-                txtExerciseName.Text = "Please add exercises to start your workout.";
-                txtSetNumber.Text = "";
-                edtReps.Visibility = Android.Views.ViewStates.Gone;
-                edtWeight.Visibility = Android.Views.ViewStates.Gone;
-                btnNextSet.Visibility = Android.Views.ViewStates.Gone;
-                return;
-            }
-            if (currentExerciseIndex >= workoutExercises.Count)
-            {
-                Toast.MakeText(this, "Workout complete!", ToastLength.Long).Show();
-                Finish();
-                return;
-            }
-
-            var (_, exerciseName, totalSets) = workoutExercises[currentExerciseIndex];
-
-            txtExerciseName.Text = exerciseName;
-            txtSetNumber.Text = $"Set {currentSetNumber} of {totalSets}";
-            edtReps.Visibility = Android.Views.ViewStates.Visible;
-            edtWeight.Visibility = Android.Views.ViewStates.Visible;
-            btnNextSet.Visibility = Android.Views.ViewStates.Visible;
-            edtWeight.Text = "";
-            edtReps.Text = "";
-
-            bool isLastSetOfLastExercise =
-                currentExerciseIndex == workoutExercises.Count - 1 && currentSetNumber == totalSets;
-
-            btnNextSet.Text = isLastSetOfLastExercise ? "Finish Workout" : "Next Set";
-        }
-
-        private async Task<List<(int ExerciseId, string ExerciseName, int Sets)>> ParseExerciseData(string exerciseData)
-        {
-            var list = new List<(int, string, int)>();
-            if (string.IsNullOrEmpty(exerciseData)) return list;
+            var list = new List<WorkoutExerciseEntry>();
+            if (string.IsNullOrWhiteSpace(exerciseData))
+                return list;
 
             var entries = exerciseData.Split(',');
             foreach (var entry in entries)
             {
                 var parts = entry.Split(':');
                 if (parts.Length >= 2 &&
-                    int.TryParse(parts[0], out int exerciseId) &&
+                    int.TryParse(parts[0], out int id) &&
                     int.TryParse(parts[1], out int sets))
                 {
-                    var exercise = await DatabaseHelper.Instance.GetExerciseByIdAsync(exerciseId);
+                    var exercise = await DatabaseHelper.Instance.GetExerciseByIdAsync(id);
                     if (exercise != null)
-                        list.Add((exercise.Id, exercise.Name, sets));
+                    {
+                        list.Add(new WorkoutExerciseEntry
+                        {
+                            ExerciseId = id,
+                            ExerciseName = exercise.Name,
+                            Sets = Enumerable.Range(1, sets).Select(_ => new WorkoutSet()).ToList()
+                        });
+                    }
                 }
             }
+
             return list;
+        }
+        private async Task SaveWorkoutAsync()
+        {
+            foreach (var entry in exerciseEntries)
+            {
+                foreach (var set in entry.Sets)
+                {
+                    if (set.Weight > 0 && set.Reps > 0)
+                    {
+                        var log = new WorkoutLog
+                        {
+                            ExerciseId = entry.ExerciseId,
+                            ExerciseName = entry.ExerciseName,
+                            Weight = set.Weight,
+                            Reps = set.Reps,
+                            Date = DateTime.Now
+                        };
+                        await DatabaseHelper.Instance.AddWorkoutLogAsync(log);
+                    }
+                }
+            }
+
+            Toast.MakeText(this, "Workout saved!", ToastLength.Long).Show();
+            Finish();
         }
     }
 }

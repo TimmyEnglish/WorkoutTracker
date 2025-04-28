@@ -1,6 +1,13 @@
-﻿using AndroidX.AppCompat.App;
-using WorkoutTracker.Data;
+﻿using Android.OS;
+using Android.Widget;
+using AndroidX.AppCompat.App;
 using Android.Content;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using WorkoutTracker.Data;
+using WorkoutTracker.Models;
 
 namespace WorkoutTracker.Views
 {
@@ -9,7 +16,7 @@ namespace WorkoutTracker.Views
     {
         private DatabaseHelper db;
         private Spinner? spnTemplates = null!;
-        private Button? btnStartWorkout = null!;
+        private Button? btnStartFromTemplate = null!;
         private ListView? lvWorkoutExercises = null!;
         private List<WorkoutTemplate> templates = new();
         private ArrayAdapter<string> adapter = null!;
@@ -21,15 +28,18 @@ namespace WorkoutTracker.Views
             SetContentView(Resource.Layout.activity_start_workout);
 
             spnTemplates = FindViewById<Spinner>(Resource.Id.spnTemplates);
-            btnStartWorkout = FindViewById<Button>(Resource.Id.btnStartWorkout);
+            btnStartFromTemplate = FindViewById<Button>(Resource.Id.btnStartFromTemplate);
             lvWorkoutExercises = FindViewById<ListView>(Resource.Id.lvWorkoutExercises);
 
             db = new DatabaseHelper();
 
-            btnStartWorkout.Click += BtnStartWorkout_Click;
-            spnTemplates.ItemSelected += SpnTemplates_ItemSelected;
+            btnStartFromTemplate.Click += BtnStartFromTemplate_Click;
 
+            // Load templates and display them on spinner
             await LoadWorkoutTemplates();
+
+            // When a template is selected, load the exercises
+            spnTemplates.ItemSelected += SpnTemplates_ItemSelected;
         }
 
         private async Task LoadWorkoutTemplates()
@@ -48,6 +58,7 @@ namespace WorkoutTracker.Views
                 adapter = new ArrayAdapter<string>(this, Android.Resource.Layout.SimpleSpinnerDropDownItem, templateNames);
                 spnTemplates.Adapter = adapter;
 
+                // Select the first template by default
                 spnTemplates.SetSelection(0);
                 selectedTemplate = templates[0];
                 await LoadWorkoutExercises(selectedTemplate);
@@ -61,20 +72,28 @@ namespace WorkoutTracker.Views
         private async void SpnTemplates_ItemSelected(object? sender, AdapterView.ItemSelectedEventArgs e)
         {
             if (templates == null || templates.Count == 0) return;
+
             selectedTemplate = templates[e.Position];
             await LoadWorkoutExercises(selectedTemplate);
         }
 
-        private void BtnStartWorkout_Click(object? sender, EventArgs e)
+        private async void BtnStartFromTemplate_Click(object? sender, EventArgs e)
         {
-            if (selectedTemplate == null)
+            if (templates == null || templates.Count == 0)
             {
-                Toast.MakeText(this, "Please select a workout template first!", ToastLength.Short).Show();
+                Toast.MakeText(this, "No templates available!", ToastLength.Short).Show();
                 return;
             }
 
+            // Get the selected template and load its exercises
+            selectedTemplate = templates[spnTemplates.SelectedItemPosition];
+            await LoadWorkoutExercises(selectedTemplate);
+
             string cleanedData = CleanExerciseSetString(selectedTemplate.ExerciseSets);
-            Intent intent = new Intent(this, typeof(WorkoutSessionActivity));
+
+            Intent intent;
+            intent = new Intent(this, typeof(WorkoutSessionActivity));
+
             intent.PutExtra("ExerciseSets", cleanedData);
             StartActivity(intent);
         }
@@ -98,7 +117,6 @@ namespace WorkoutTracker.Views
         private async Task LoadWorkoutExercises(WorkoutTemplate template)
         {
             if (lvWorkoutExercises == null) return;
-            lvWorkoutExercises.Adapter = null;
 
             var exerciseList = new List<string>();
 

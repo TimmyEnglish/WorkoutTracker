@@ -6,11 +6,27 @@
     android:gravity="center"
     android:padding="16dp">
 
-    <ListView
+	<SearchView
+        android:id="@+id/searchViewExercises"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:queryHint="Search exercises..."
+		android:iconifiedByDefault="false" 
+        android:layout_marginTop="28dp"/>
+
+	<ListView
         android:id="@+id/lvExerciseList"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
         android:divider="@android:color/darker_gray"
         android:dividerHeight="1dp"/>
+
+	<Button
+        android:id="@+id/btnAddNewExercise"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Add New Exercise"
+		android:layout_marginBottom="36dp" />
 
 </LinearLayout>

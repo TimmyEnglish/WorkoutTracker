@@ -63,6 +63,32 @@ namespace WorkoutTracker.Views
                 var intent = new Intent(this, typeof(SelectExerciseActivity));
                 StartActivityForResult(intent, REQUEST_CODE_SELECT_EXERCISE);
             };
+
+            lvExercises.ItemLongClick += (s, e) =>
+            {
+                var position = e.Position;
+
+                if (position >= 0 && position < selectedExerciseNames.Count)
+                {
+                    var builder = new Android.App.AlertDialog.Builder(this);
+                    builder.SetTitle("Remove Exercise");
+                    builder.SetMessage($"Remove \"{selectedExerciseNames[position]}\" from template?");
+                    builder.SetPositiveButton("Yes", (senderAlert, args) =>
+                    {
+                        int exerciseId = exerciseSetData.Keys.ElementAt(position);
+                        exerciseSetData.Remove(exerciseId);
+                        selectedExerciseNames.RemoveAt(position);
+
+                        UpdateExerciseList();
+                        Toast.MakeText(this, "Exercise removed", ToastLength.Short).Show();
+                    });
+                    builder.SetNegativeButton("Cancel", (senderAlert, args) => { });
+
+                    var dialog = builder.Create();
+                    dialog.Show();
+                }
+            };
+
         }
         protected override void OnActivityResult(int requestCode, Result resultCode, Intent data)
         {

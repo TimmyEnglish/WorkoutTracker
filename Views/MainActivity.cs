@@ -28,6 +28,7 @@ namespace WorkoutTracker.Views
             btnViewStats.Click += (s, e) => StartActivity(typeof(ViewStatsActivity));
             btnNewWorkout.Click += (s, e) =>
             {
+                var intentTemplate = new Intent(this, typeof(StartWorkoutActivity));
                 ShowNewWorkoutDialog();
             };
             db = new DatabaseHelper();
@@ -36,7 +37,7 @@ namespace WorkoutTracker.Views
         {
             AlertDialog.Builder dialogBuilder = new AlertDialog.Builder(this);
             dialogBuilder.SetTitle("New Workout")
-                .SetItems(new string[] { "Start from Template", "Start Blank Workout" }, (sender, e) =>
+                .SetItems(new string[] { "Start from Template", "Start Empty Workout" }, (sender, e) =>
                 {
                     switch (e.Which)
                     {
@@ -46,8 +47,8 @@ namespace WorkoutTracker.Views
                             break;
 
                         case 1:
-                            var intentBlank = new Intent(this, typeof(WorkoutSessionActivity));
-                            StartActivity(intentBlank);
+                            var intentSession = new Intent(this, typeof(WorkoutSessionActivity));
+                            StartActivity(intentSession);
                             break;
                     }
                 });

@@ -1,56 +1,44 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:gravity="center"
-    android:orientation="vertical"
     android:padding="16dp">
 
-	<TextView
-        android:id="@+id/txtExerciseName"
+	<FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Exercise Name"
-        android:textSize="22sp"
-        android:textStyle="bold"
-        android:gravity="center"
-        android:paddingBottom="8dp"
-		android:layout_marginTop="40dp" />
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="24dp">
 
-	<TextView
-        android:id="@+id/txtSetNumber"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Set X of Y"
-        android:textSize="18sp"
-        android:gravity="center"
-        android:paddingBottom="16dp" />
+		<androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerFreestyleWorkout"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
 
-	<EditText
-        android:id="@+id/edtWeight"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:inputType="numberDecimal"
-        android:hint="Enter weight (kg/lbs)" />
-
-	<EditText
-        android:id="@+id/edtReps"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:inputType="number"
-        android:hint="Enter reps" />
+		<TextView
+            android:id="@+id/txtNoExercises"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:text="Please add exercises to start your workout"
+            android:gravity="center"
+            android:visibility="gone"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:textColor="#666666" />
+	</FrameLayout>
 
 	<Button
-        android:id="@+id/btnNextSet"
+        android:id="@+id/btnAddExercise"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Next Set"
-        android:layout_marginTop="16dp" />
+        android:text="Add Exercises" />
 
 	<Button
-        android:id="@id/btnAddExercise"
+        android:id="@+id/btnFinishWorkout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-		android:layout_marginBottom="20dp"
-    	android:text="Add Exercise"/>
+        android:text="Finish Workout"
+        android:layout_marginBottom="36dp" />
+
 </LinearLayout>

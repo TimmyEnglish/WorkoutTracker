@@ -108,6 +108,17 @@ namespace WorkoutTracker.Data
                 return -1; // Return -1 if an error occurs
             }
         }
+        public async Task DeleteExerciseAsync(Exercise exercise)
+        {
+            try
+            {
+                await _database.DeleteAsync(exercise);
+            }
+            catch (Exception ex)
+            {
+                Log.Error("DatabaseHelper", $"Error deleting exercise: {ex.Message}");
+            }
+        }
         public async Task<List<Exercise>> GetExercisesAsync()
         {
             try
