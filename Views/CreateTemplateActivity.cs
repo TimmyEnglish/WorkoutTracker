@@ -2,95 +2,210 @@
 using Android.Content;
 using WorkoutTracker.Data;
 using WorkoutTracker.Models;
+using Android.App;
+using Android.Widget;
+using System.Linq;
 
 namespace WorkoutTracker.Views
 {
-    [Activity(Label = "Create Template")]
+    [Activity(Label = "Manage Templates")]
     public class CreateTemplateActivity : AppCompatActivity
     {
         private const int REQUEST_CODE_SELECT_EXERCISE = 1001;
 
-        private EditText? txtTemplateName;
-        private Button? btnAddExercise, btnSaveTemplate;
+        private Spinner? spnTemplates;
+        private Button? btnNewTemplate, btnAddExercise, btnSaveChanges, btnDeleteTemplate;
         private ListView? lvExercises;
 
-        private Dictionary<int, int> exerciseSetData = new Dictionary<int, int>(); // ExerciseId -> Sets
-        private List<Exercise> exercises = new();
-        private ArrayAdapter<string>? adapter;
+        private List<WorkoutTemplate> templates = new();
+        private Dictionary<int, int> exerciseSetData = new(); // ExerciseId -> Sets
+        private List<string> selectedExerciseNames = new(); // "Exercise Name - Sets"
+        private ArrayAdapter<string>? exerciseAdapter;
+        private ArrayAdapter<string>? templateAdapter;
 
-        private List<string> selectedExerciseNames = new List<string>(); //ExerciseName - Sets
-
-        private DatabaseHelper db;
+        private int selectedTemplateId = -1;
 
         protected override async void OnCreate(Bundle? savedInstanceState)
         {
             base.OnCreate(savedInstanceState);
             SetContentView(Resource.Layout.activity_create_template);
-            DatabaseHelper db = new DatabaseHelper();
 
-            txtTemplateName = FindViewById<EditText>(Resource.Id.txtTemplateName);
+            spnTemplates = FindViewById<Spinner>(Resource.Id.spnTemplates);
+            btnNewTemplate = FindViewById<Button>(Resource.Id.btnNewTemplate);
             btnAddExercise = FindViewById<Button>(Resource.Id.btnAddExercise);
-            btnSaveTemplate = FindViewById<Button>(Resource.Id.btnSaveTemplate);
+            btnSaveChanges = FindViewById<Button>(Resource.Id.btnSaveChanges);
+            btnDeleteTemplate = FindViewById<Button>(Resource.Id.btnDeleteTemplate);
             lvExercises = FindViewById<ListView>(Resource.Id.lvExercises);
 
-            adapter = new ArrayAdapter<string>(this, Android.Resource.Layout.SimpleListItem1, new List<string>());
-            lvExercises.Adapter = adapter;
+            exerciseAdapter = new ArrayAdapter<string>(this, Android.Resource.Layout.SimpleListItem1, new List<string>());
+            lvExercises.Adapter = exerciseAdapter;
 
-            btnSaveTemplate.Click += async (s, e) =>
+            btnNewTemplate.Click += (s, e) => ShowCreateTemplateDialog();
+            btnAddExercise.Click += (s, e) => AddExercise();
+            btnSaveChanges.Click += async (s, e) => await SaveTemplateChangesAsync();
+            btnDeleteTemplate.Click += async (s, e) => await DeleteTemplateAsync();
+
+            lvExercises.ItemLongClick += (s, e) => RemoveExerciseAt(e.Position);
+
+            spnTemplates.ItemSelected += (s, e) =>
             {
-                if (string.IsNullOrWhiteSpace(txtTemplateName.Text) || !exerciseSetData.Any())
+                if (e.Position >= 0 && e.Position < templates.Count)
                 {
-                    Toast.MakeText(this, "Please enter a template name and add at least one exercise.", ToastLength.Short).Show();
-                    return;
+                    selectedTemplateId = templates[e.Position].Id;
+                    LoadExercisesForTemplateAsync(selectedTemplateId);
                 }
-
-                // "1:3,2:3" (ExerciseId:SetCount)
-                string formattedExerciseSets = string.Join(",", exerciseSetData.Select(ex => $"{ex.Key}:{ex.Value}"));
-
-                var template = new WorkoutTemplate
-                {
-                    Name = txtTemplateName.Text.Trim(),
-                    ExerciseSets = formattedExerciseSets
-                };
-
-                await DatabaseHelper.Instance.AddWorkoutTemplateAsync(template);
-                Toast.MakeText(this, "Template saved!", ToastLength.Short).Show();
-                Finish();
             };
 
-            btnAddExercise.Click += (s, e) =>
+            await LoadTemplatesAsync();
+        }
+
+        private async Task LoadTemplatesAsync()
+        {
+            templates = await DatabaseHelper.Instance.GetWorkoutTemplatesAsync();
+            templateAdapter = new ArrayAdapter<string>(this, Android.Resource.Layout.SimpleSpinnerItem, templates.Select(t => t.Name).ToList());
+            templateAdapter.SetDropDownViewResource(Android.Resource.Layout.SimpleSpinnerDropDownItem);
+            spnTemplates!.Adapter = templateAdapter;
+        }
+
+        private void ShowCreateTemplateDialog()
+        {
+            Android.App.AlertDialog.Builder dialog = new Android.App.AlertDialog.Builder(this);
+            dialog.SetTitle("New Template");
+
+            var input = new EditText(this)
+            {
+                Hint = "Enter template name"
+            };
+            dialog.SetView(input);
+
+            dialog.SetPositiveButton("Create", async (sender, args) =>
+            {
+                string name = input.Text.Trim();
+                if (!string.IsNullOrEmpty(name))
+                {
+                    var newTemplate = new WorkoutTemplate
+                    {
+                        Name = name,
+                        ExerciseSets = "" // Empty for now
+                    };
+                    int newId = await DatabaseHelper.Instance.AddWorkoutTemplateAndReturnIdAsync(newTemplate);
+                    await LoadTemplatesAsync();
+                    // Select newly created template
+                    int newPosition = templates.FindIndex(t => t.Id == newId);
+                    if (newPosition >= 0)
+                        spnTemplates!.SetSelection(newPosition);
+                    Toast.MakeText(this, "Template created!", ToastLength.Short).Show();
+                }
+                else
+                {
+                    Toast.MakeText(this, "Name cannot be empty.", ToastLength.Short).Show();
+                }
+            });
+
+            dialog.SetNegativeButton("Cancel", (sender, args) => { });
+
+            dialog.Show();
+        }
+
+        private void AddExercise()
+        {
+            if (selectedTemplateId != -1)
             {
                 var intent = new Intent(this, typeof(SelectExerciseActivity));
                 StartActivityForResult(intent, REQUEST_CODE_SELECT_EXERCISE);
-            };
-
-            lvExercises.ItemLongClick += (s, e) =>
+            }
+            else
             {
-                var position = e.Position;
+                Toast.MakeText(this, "Please select a template first.", ToastLength.Short).Show();
+            }
+        }
 
-                if (position >= 0 && position < selectedExerciseNames.Count)
+        private async void LoadExercisesForTemplateAsync(int templateId)
+        {
+            var template = await DatabaseHelper.Instance.GetWorkoutTemplateByIdAsync(templateId);
+
+            if (template != null)
+            {
+                exerciseSetData.Clear();
+                selectedExerciseNames.Clear();
+
+                if (!string.IsNullOrEmpty(template.ExerciseSets))
                 {
-                    var builder = new Android.App.AlertDialog.Builder(this);
-                    builder.SetTitle("Remove Exercise");
-                    builder.SetMessage($"Remove \"{selectedExerciseNames[position]}\" from template?");
-                    builder.SetPositiveButton("Yes", (senderAlert, args) =>
+                    var sets = template.ExerciseSets.Split(',');
+                    foreach (var item in sets)
                     {
-                        int exerciseId = exerciseSetData.Keys.ElementAt(position);
-                        exerciseSetData.Remove(exerciseId);
-                        selectedExerciseNames.RemoveAt(position);
-
-                        UpdateExerciseList();
-                        Toast.MakeText(this, "Exercise removed", ToastLength.Short).Show();
-                    });
-                    builder.SetNegativeButton("Cancel", (senderAlert, args) => { });
-
-                    var dialog = builder.Create();
-                    dialog.Show();
+                        var parts = item.Split(':');
+                        if (parts.Length == 2 &&
+                            int.TryParse(parts[0], out int exerciseId) &&
+                            int.TryParse(parts[1], out int setCount))
+                        {
+                            var exercise = await DatabaseHelper.Instance.GetExerciseByIdAsync(exerciseId);
+                            if (exercise != null)
+                            {
+                                exerciseSetData[exerciseId] = setCount;
+                                selectedExerciseNames.Add($"{exercise.Name} - Sets: {setCount}");
+                            }
+                        }
+                    }
                 }
+                UpdateExerciseList();
+            }
+        }
+
+        private void UpdateExerciseList()
+        {
+            exerciseAdapter!.Clear();
+            exerciseAdapter!.AddAll(selectedExerciseNames);
+            exerciseAdapter!.NotifyDataSetChanged();
+        }
+
+        private async Task SaveTemplateChangesAsync()
+        {
+            if (selectedTemplateId == -1)
+            {
+                Toast.MakeText(this, "No template selected.", ToastLength.Short).Show();
+                return;
+            }
+
+            string formattedExerciseSets = string.Join(",", exerciseSetData.Select(ex => $"{ex.Key}:{ex.Value}"));
+
+            var updatedTemplate = new WorkoutTemplate
+            {
+                Id = selectedTemplateId,
+                Name = templates.First(t => t.Id == selectedTemplateId).Name,
+                ExerciseSets = formattedExerciseSets
             };
 
+            await DatabaseHelper.Instance.UpdateWorkoutTemplateAsync(updatedTemplate);
+            Toast.MakeText(this, "Template updated.", ToastLength.Short).Show();
         }
-        protected override void OnActivityResult(int requestCode, Result resultCode, Intent data)
+
+        private async Task DeleteTemplateAsync()
+        {
+            if (selectedTemplateId != -1)
+            {
+                await DatabaseHelper.Instance.DeleteWorkoutTemplateAsync(selectedTemplateId);
+                await LoadTemplatesAsync();
+                selectedTemplateId = -1;
+                exerciseSetData.Clear();
+                selectedExerciseNames.Clear();
+                UpdateExerciseList();
+                Toast.MakeText(this, "Template deleted.", ToastLength.Short).Show();
+            }
+        }
+
+        private void RemoveExerciseAt(int position)
+        {
+            if (position >= 0 && position < selectedExerciseNames.Count)
+            {
+                int exerciseId = exerciseSetData.Keys.ElementAt(position);
+                exerciseSetData.Remove(exerciseId);
+                selectedExerciseNames.RemoveAt(position);
+                UpdateExerciseList();
+            }
+        }
+
+        protected override void OnActivityResult(int requestCode, Result resultCode, Intent? data)
         {
             base.OnActivityResult(requestCode, resultCode, data);
 
@@ -98,33 +213,18 @@ namespace WorkoutTracker.Views
             {
                 int exerciseId = data.GetIntExtra("ExerciseId", -1);
                 string exerciseName = data.GetStringExtra("ExerciseName");
-                int sets = data.GetIntExtra("Sets", 3); // Default to 3
+                int sets = data.GetIntExtra("Sets", 3);
 
                 if (exerciseId != -1 && !string.IsNullOrEmpty(exerciseName))
                 {
-                    AddExerciseToList(exerciseId, exerciseName, sets);
+                    if (!exerciseSetData.ContainsKey(exerciseId))
+                    {
+                        exerciseSetData[exerciseId] = sets;
+                        selectedExerciseNames.Add($"{exerciseName} - Sets: {sets}");
+                        UpdateExerciseList();
+                    }
                 }
             }
         }
-        private void AddExerciseToList(int exerciseId, string exerciseName, int sets)
-        {
-            if (!exerciseSetData.ContainsKey(exerciseId))
-            {
-                exerciseSetData[exerciseId] = sets;
-
-                string formattedEntry = $"{exerciseName} - Sets: {sets}";
-                selectedExerciseNames.Add(formattedEntry);
-
-                UpdateExerciseList();
-            }
-        }
-
-        private void UpdateExerciseList()
-        {
-            adapter?.Clear();
-            adapter?.AddAll(selectedExerciseNames);
-            adapter?.NotifyDataSetChanged();
-        }
     }
 }
-

@@ -47,34 +47,41 @@ namespace WorkoutTracker.Views
 
                 for (int i = 0; i < exercise.Sets.Count; i++)
                 {
-                    var set = exercise.Sets[i];
+                    var setIndex = i;
+                    var set = exercise.Sets[setIndex];
 
                     var setView = LayoutInflater.From(ItemView.Context).Inflate(Resource.Layout.item_set_input, layoutSets, false);
                     var edtWeight = setView.FindViewById<EditText>(Resource.Id.edtWeight);
                     var edtReps = setView.FindViewById<EditText>(Resource.Id.edtReps);
                     var txtSetNumber = setView.FindViewById<TextView>(Resource.Id.txtSetNumber);
 
-                    txtSetNumber.Text = $"Set {i + 1}";
+                    txtSetNumber.Text = $"Set {setIndex + 1}";
 
+                    // Restore saved values
+                    edtWeight.Text = set.Weight?.ToString() ?? "";
+                    edtReps.Text = set.Reps?.ToString() ?? "";
+
+                    // Clear any existing event handlers
                     edtWeight.TextChanged += (s, e) =>
                     {
                         if (double.TryParse(edtWeight.Text, out double weight))
-                        {
                             set.Weight = weight;
-                        }
+                        else
+                            set.Weight = null;
                     };
 
                     edtReps.TextChanged += (s, e) =>
                     {
                         if (int.TryParse(edtReps.Text, out int reps))
-                        {
                             set.Reps = reps;
-                        }
+                        else
+                            set.Reps = null;
                     };
 
                     layoutSets.AddView(setView);
                 }
             }
+
         }
     }
 }

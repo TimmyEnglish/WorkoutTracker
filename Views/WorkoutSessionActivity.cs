@@ -131,8 +131,8 @@ namespace WorkoutTracker.Views
                         {
                             ExerciseId = entry.ExerciseId,
                             ExerciseName = entry.ExerciseName,
-                            Weight = set.Weight,
-                            Reps = set.Reps,
+                            Weight = set.Weight ?? 0.0,
+                            Reps = set.Reps ?? 0,
                             Date = DateTime.Now
                         };
                         await DatabaseHelper.Instance.AddWorkoutLogAsync(log);

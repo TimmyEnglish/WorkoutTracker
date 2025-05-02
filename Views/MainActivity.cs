@@ -17,14 +17,14 @@ namespace WorkoutTracker.Views
             base.OnCreate(savedInstanceState);
             SetContentView(Resource.Layout.activity_main);
 
-            var btnCreateTemplate = FindViewById<Button>(Resource.Id.btnCreateTemplate)
-                ?? throw new NullReferenceException("btnCreateTemplate not found");
+            var btnManageTemplates = FindViewById<Button>(Resource.Id.btnManageTemplates)
+                ?? throw new NullReferenceException("btnManageTemplates not found");
             var btnViewStats = FindViewById<Button>(Resource.Id.btnViewStats)
                 ?? throw new NullReferenceException("btnViewStats not found");
             var btnNewWorkout = FindViewById<Button>(Resource.Id.btnNewWorkout)
                 ?? throw new NullReferenceException("btnStartWorkout not found");
 
-            btnCreateTemplate.Click += (s, e) => StartActivity(typeof(CreateTemplateActivity));
+            btnManageTemplates.Click += (s, e) => StartActivity(typeof(CreateTemplateActivity));
             btnViewStats.Click += (s, e) => StartActivity(typeof(ViewStatsActivity));
             btnNewWorkout.Click += (s, e) =>
             {

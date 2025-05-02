@@ -11,6 +11,7 @@ namespace WorkoutTracker.Data
         private static bool _isDatabaseReset = false;
         private readonly SQLiteAsyncConnection _database;
         string dbPath = Path.Combine(Android.App.Application.Context.FilesDir.AbsolutePath, "workout.db");
+
         public static DatabaseHelper Instance
         {
             get
@@ -21,16 +22,18 @@ namespace WorkoutTracker.Data
                 }
             }
         }
-        public DatabaseHelper() 
+
+        public DatabaseHelper()
         {
             if (!_isDatabaseReset)
             {
                 ResetDatabase(); // TEMPORARY
                 _isDatabaseReset = true;
-            } 
+            }
             _database = new SQLiteAsyncConnection(dbPath, SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.Create);
             InitializeDatabase();
         }
+
         private void ResetDatabase()
         {
             try
@@ -38,35 +41,45 @@ namespace WorkoutTracker.Data
                 if (File.Exists(dbPath))
                 {
                     File.Delete(dbPath);
-                    Android.Util.Log.Debug("DatabaseHelper", "Database deleted successfully.");
+                    Log.Debug("DatabaseHelper", "Database deleted successfully.");
                 }
             }
             catch (Exception ex)
             {
-                Android.Util.Log.Error("DatabaseHelper", $"Error deleting database: {ex.Message}");
+                Log.Error("DatabaseHelper", $"Error deleting database: {ex.Message}");
             }
         }
+
         private async void InitializeDatabase()
         {
             await _database.CreateTableAsync<Exercise>();
             await _database.CreateTableAsync<WorkoutTemplate>();
             await _database.CreateTableAsync<WorkoutLog>();
 
-            Android.Util.Log.Debug("DatabaseHelper", "Database initialized.");
+            Log.Debug("DatabaseHelper", "Database initialized.");
 
-            if (await IsDatabaseEmpty()) // Ensure data is only added once
+            if (await IsDatabaseEmpty())
             {
                 await AddDefaultData();
             }
-            string destPath = Path.Combine(Android.OS.Environment.ExternalStorageDirectory.AbsolutePath, "Download", "workout.db");
 
-            File.Copy(dbPath, destPath, true);
+            try
+            {
+                string destPath = Path.Combine(Android.OS.Environment.ExternalStorageDirectory.AbsolutePath, "Download", "workout.db");
+                File.Copy(dbPath, destPath, true);
+            }
+            catch (Exception ex)
+            {
+                Log.Error("DatabaseHelper", $"Error copying database: {ex.Message}");
+            }
         }
+
         private async Task<bool> IsDatabaseEmpty()
         {
             var count = await _database.Table<WorkoutTemplate>().CountAsync();
             return count == 0;
         }
+
         private async Task AddDefaultData()
         {
             try
@@ -96,6 +109,8 @@ namespace WorkoutTracker.Data
             }
         }
 
+        // --- Exercise CRUD ---
+
         public async Task<int> AddExerciseAsync(Exercise exercise)
         {
             try
@@ -105,9 +120,10 @@ namespace WorkoutTracker.Data
             catch (Exception ex)
             {
                 Log.Error("DatabaseHelper", $"Error adding exercise: {ex.Message}");
-                return -1; // Return -1 if an error occurs
+                return -1;
             }
         }
+
         public async Task DeleteExerciseAsync(Exercise exercise)
         {
             try
@@ -119,6 +135,7 @@ namespace WorkoutTracker.Data
                 Log.Error("DatabaseHelper", $"Error deleting exercise: {ex.Message}");
             }
         }
+
         public async Task<List<Exercise>> GetExercisesAsync()
         {
             try
@@ -128,9 +145,25 @@ namespace WorkoutTracker.Data
             catch (Exception ex)
             {
                 Log.Error("DatabaseHelper", $"Error fetching exercises: {ex.Message}");
-                return new List<Exercise>(); // Return an empty list if an error occurs
+                return new List<Exercise>();
             }
         }
+
+        public async Task<Exercise?> GetExerciseByIdAsync(int id)
+        {
+            try
+            {
+                return await _database.Table<Exercise>().FirstOrDefaultAsync(e => e.Id == id);
+            }
+            catch (Exception ex)
+            {
+                Log.Error("DatabaseHelper", $"Error fetching exercise by ID: {ex.Message}");
+                return null;
+            }
+        }
+
+        // --- WorkoutTemplate CRUD ---
+
         public async Task<int> AddWorkoutTemplateAsync(WorkoutTemplate template)
         {
             try
@@ -143,6 +176,21 @@ namespace WorkoutTracker.Data
                 return -1;
             }
         }
+
+        public async Task<int> AddWorkoutTemplateAndReturnIdAsync(WorkoutTemplate template)
+        {
+            try
+            {
+                await _database.InsertAsync(template);
+                return template.Id;
+            }
+            catch (Exception ex)
+            {
+                Log.Error("DatabaseHelper", $"Error adding workout template and returning ID: {ex.Message}");
+                return -1;
+            }
+        }
+
         public async Task<List<WorkoutTemplate>> GetWorkoutTemplatesAsync()
         {
             try
@@ -155,6 +203,50 @@ namespace WorkoutTracker.Data
                 return new List<WorkoutTemplate>();
             }
         }
+
+        public async Task<WorkoutTemplate?> GetWorkoutTemplateByIdAsync(int id)
+        {
+            try
+            {
+                return await _database.Table<WorkoutTemplate>().FirstOrDefaultAsync(t => t.Id == id);
+            }
+            catch (Exception ex)
+            {
+                Log.Error("DatabaseHelper", $"Error fetching workout template by ID: {ex.Message}");
+                return null;
+            }
+        }
+
+        public async Task UpdateWorkoutTemplateAsync(WorkoutTemplate template)
+        {
+            try
+            {
+                await _database.UpdateAsync(template);
+            }
+            catch (Exception ex)
+            {
+                Log.Error("DatabaseHelper", $"Error updating workout template: {ex.Message}");
+            }
+        }
+
+        public async Task DeleteWorkoutTemplateAsync(int id)
+        {
+            try
+            {
+                var template = await _database.Table<WorkoutTemplate>().Where(t => t.Id == id).FirstOrDefaultAsync();
+                if (template != null)
+                {
+                    await _database.DeleteAsync(template);
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error("DatabaseHelper", $"Error deleting workout template: {ex.Message}");
+            }
+        }
+
+        // --- WorkoutLog ---
+
         public async Task<int> AddWorkoutLogAsync(WorkoutLog log)
         {
             try
@@ -167,6 +259,7 @@ namespace WorkoutTracker.Data
                 return -1;
             }
         }
+
         public async Task<List<WorkoutLog>> GetWorkoutLogsByExerciseAsync(int exerciseId)
         {
             try
@@ -179,10 +272,9 @@ namespace WorkoutTracker.Data
                 return new List<WorkoutLog>();
             }
         }
-        public async Task<Exercise?> GetExerciseByIdAsync(int id)
-        {
-            return await _database.Table<Exercise>().Where(e => e.Id == id).FirstOrDefaultAsync();
-        }
+
+        // --- Other ---
+
         public async Task CloseDatabase()
         {
             await _database.CloseAsync();
