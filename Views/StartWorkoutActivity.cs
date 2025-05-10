@@ -1,17 +1,16 @@
-﻿using Android.OS;
-using Android.Widget;
-using AndroidX.AppCompat.App;
+﻿using AndroidX.AppCompat.App;
 using Android.Content;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using WorkoutTracker.Data;
-using WorkoutTracker.Models;
+using Android.Content.PM;
+using Android.Content.Res;
 
 namespace WorkoutTracker.Views
 {
-    [Activity(Label = "Start Workout")]
+    [Activity(
+    Label = "Start Workout",
+    ScreenOrientation = ScreenOrientation.Portrait,
+    ConfigurationChanges = ConfigChanges.Orientation | ConfigChanges.ScreenSize | ConfigChanges.KeyboardHidden)]
+
     public class StartWorkoutActivity : AppCompatActivity
     {
         private DatabaseHelper db;
@@ -21,11 +20,18 @@ namespace WorkoutTracker.Views
         private List<WorkoutTemplate> templates = new();
         private ArrayAdapter<string> adapter = null!;
         private WorkoutTemplate? selectedTemplate;
-
         protected override async void OnCreate(Bundle savedInstanceState)
         {
             base.OnCreate(savedInstanceState);
             SetContentView(Resource.Layout.activity_start_workout);
+            RequestedOrientation = ScreenOrientation.Portrait;
+
+            bool isDarkTheme = (Resources.Configuration.UiMode & UiMode.NightMask) == UiMode.NightYes;
+            if (isDarkTheme && SupportActionBar != null)
+            {
+                var color = Android.Graphics.Color.ParseColor("#222222");
+                SupportActionBar.SetBackgroundDrawable(new Android.Graphics.Drawables.ColorDrawable(color));
+            }
 
             spnTemplates = FindViewById<Spinner>(Resource.Id.spnTemplates);
             btnStartFromTemplate = FindViewById<Button>(Resource.Id.btnStartFromTemplate);
@@ -41,7 +47,6 @@ namespace WorkoutTracker.Views
             // When a template is selected, load the exercises
             spnTemplates.ItemSelected += SpnTemplates_ItemSelected;
         }
-
         private async Task LoadWorkoutTemplates()
         {
             try
@@ -68,7 +73,6 @@ namespace WorkoutTracker.Views
                 Toast.MakeText(this, "Error loading templates: " + ex.Message, ToastLength.Long).Show();
             }
         }
-
         private async void SpnTemplates_ItemSelected(object? sender, AdapterView.ItemSelectedEventArgs e)
         {
             if (templates == null || templates.Count == 0) return;
@@ -76,7 +80,6 @@ namespace WorkoutTracker.Views
             selectedTemplate = templates[e.Position];
             await LoadWorkoutExercises(selectedTemplate);
         }
-
         private async void BtnStartFromTemplate_Click(object? sender, EventArgs e)
         {
             if (templates == null || templates.Count == 0)
@@ -97,7 +100,6 @@ namespace WorkoutTracker.Views
             intent.PutExtra("ExerciseSets", cleanedData);
             StartActivity(intent);
         }
-
         private string CleanExerciseSetString(string exerciseSets)
         {
             if (string.IsNullOrEmpty(exerciseSets)) return string.Empty;
@@ -113,7 +115,6 @@ namespace WorkoutTracker.Views
 
             return string.Join(",", cleanedEntries!);
         }
-
         private async Task LoadWorkoutExercises(WorkoutTemplate template)
         {
             if (lvWorkoutExercises == null) return;

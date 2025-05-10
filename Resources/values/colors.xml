@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<!-- Light Theme -->
+	<color name="colorPrimary">#1976D2</color>
+	<color name="colorPrimaryVariant">#1565C0</color>
+	<color name="colorOnPrimary">#FFFFFF</color>
+
+	<color name="colorSecondary">#0288D1</color>
+	<color name="colorOnSecondary">#FFFFFF</color>
+
+	<color name="background">#FFFFFF</color>
+	<color name="surface">#FFFFFF</color>
+	<color name="onBackground">#000000</color>
+	<color name="onSurface">#000000</color>
+</resources>

@@ -4,10 +4,17 @@ using AndroidX.AppCompat.App;
 using AndroidX.RecyclerView.Widget;
 using WorkoutTracker.Data;
 using WorkoutTracker.Models;
+using Newtonsoft.Json;
+using Android.Content.PM;
+using Android.Content.Res;
 
 namespace WorkoutTracker.Views
 {
-    [Activity(Label = "Workout Session")]
+    [Activity(
+    Label = "Workout Session",
+    ScreenOrientation = ScreenOrientation.Portrait,
+    ConfigurationChanges = ConfigChanges.Orientation | ConfigChanges.ScreenSize | ConfigChanges.KeyboardHidden)]
+
     public class WorkoutSessionActivity : AppCompatActivity
     {
         private TextView txtNoExercises;
@@ -16,21 +23,36 @@ namespace WorkoutTracker.Views
         private RecyclerView recyclerView;
         private WorkoutSessionAdapter adapter;
         private List<WorkoutExerciseEntry> exerciseEntries = new();
-
+        private const string WorkoutStateKey = "WorkoutSessionState";
         protected override async void OnCreate(Bundle savedInstanceState)
         {
             base.OnCreate(savedInstanceState);
             SetContentView(Resource.Layout.activity_workout_session);
+            RequestedOrientation = ScreenOrientation.Portrait;
+
+            bool isDarkTheme = (Resources.Configuration.UiMode & UiMode.NightMask) == UiMode.NightYes;
+            if (isDarkTheme && SupportActionBar != null)
+            {
+                var color = Android.Graphics.Color.ParseColor("#222222");
+                SupportActionBar.SetBackgroundDrawable(new Android.Graphics.Drawables.ColorDrawable(color));
+            }
 
             recyclerView = FindViewById<RecyclerView>(Resource.Id.recyclerFreestyleWorkout);
             btnAddExercise = FindViewById<Button>(Resource.Id.btnAddExercise);
             btnFinishWorkout = FindViewById<Button>(Resource.Id.btnFinishWorkout);
             txtNoExercises = FindViewById<TextView>(Resource.Id.txtNoExercises);
 
-            string exerciseData = Intent.GetStringExtra("ExerciseSets") ?? string.Empty;
-            exerciseEntries = await LoadExercisesAsync(exerciseData);
+            LoadTemporaryState();
 
-            adapter = new WorkoutSessionAdapter(exerciseEntries);
+            // If no session data, try loading from intent
+            if (exerciseEntries.Count == 0)
+            {
+                string exerciseData = Intent.GetStringExtra("ExerciseSets") ?? string.Empty;
+                exerciseEntries = await LoadExercisesAsync(exerciseData);
+            }
+
+            adapter = new WorkoutSessionAdapter(exerciseEntries, SaveTemporaryState);
+
             recyclerView.SetLayoutManager(new LinearLayoutManager(this));
             recyclerView.SetAdapter(adapter);
 
@@ -42,7 +64,11 @@ namespace WorkoutTracker.Views
                 StartActivityForResult(intent, 1000);
             };
 
-            btnFinishWorkout.Click += async (s, e) => await SaveWorkoutAsync();
+            btnFinishWorkout.Click += async (s, e) =>
+            {
+                await SaveWorkoutAsync();
+                ClearTemporaryState(); 
+            };
         }
         protected override async void OnActivityResult(int requestCode, Result resultCode, Intent data)
         {
@@ -76,19 +102,14 @@ namespace WorkoutTracker.Views
 
                     adapter.NotifyDataSetChanged();
                     UpdateEmptyState();
+
+                    SaveTemporaryState();
                 }
             }
         }
         private void UpdateEmptyState()
         {
-            if (exerciseEntries.Count == 0)
-            {
-                txtNoExercises.Visibility = ViewStates.Visible;
-            }
-            else
-            {
-                txtNoExercises.Visibility = ViewStates.Gone;
-            }
+            txtNoExercises.Visibility = exerciseEntries.Count == 0 ? ViewStates.Visible : ViewStates.Gone;
         }
         private async Task<List<WorkoutExerciseEntry>> LoadExercisesAsync(string exerciseData)
         {
@@ -125,23 +146,52 @@ namespace WorkoutTracker.Views
             {
                 foreach (var set in entry.Sets)
                 {
-                    if (set.Weight > 0 && set.Reps > 0)
+                    if (set.Weight >= 0 && set.Reps > 0) 
                     {
                         var log = new WorkoutLog
                         {
                             ExerciseId = entry.ExerciseId,
                             ExerciseName = entry.ExerciseName,
                             Weight = set.Weight ?? 0.0,
-                            Reps = set.Reps ?? 0,
+                            Reps = set.Reps ?? 0, 
                             Date = DateTime.Now
                         };
-                        await DatabaseHelper.Instance.AddWorkoutLogAsync(log);
+
+                        await DatabaseHelper.Instance.AddWorkoutLogAsync(entry.ExerciseId, set.Reps ?? 0, set.Weight ?? 0.0);
                     }
                 }
             }
-
             Toast.MakeText(this, "Workout saved!", ToastLength.Long).Show();
+            var intent = new Intent(this, typeof(MainActivity));
+            intent.SetFlags(ActivityFlags.ClearTop | ActivityFlags.NewTask);
+            StartActivity(intent);
             Finish();
+        }
+        private void SaveTemporaryState()
+        {
+            var prefs = GetSharedPreferences("WorkoutPrefs", FileCreationMode.Private);
+            var editor = prefs.Edit();
+            string json = JsonConvert.SerializeObject(exerciseEntries);
+            editor.PutString(WorkoutStateKey, json);
+            editor.Apply();
+        }
+        private void LoadTemporaryState()
+        {
+            var prefs = GetSharedPreferences("WorkoutPrefs", FileCreationMode.Private);
+            string json = prefs.GetString(WorkoutStateKey, null);
+
+            if (!string.IsNullOrEmpty(json))
+            {
+                var restored = JsonConvert.DeserializeObject<List<WorkoutExerciseEntry>>(json);
+                if (restored != null)
+                    exerciseEntries = restored;
+                Toast.MakeText(this, "Workout resumed!", ToastLength.Short).Show();
+            }
+        }
+        private void ClearTemporaryState()
+        {
+            var prefs = GetSharedPreferences("WorkoutPrefs", FileCreationMode.Private);
+            prefs.Edit().Remove(WorkoutStateKey).Apply();
         }
     }
 }

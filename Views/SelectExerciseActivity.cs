@@ -2,10 +2,15 @@
 using Android.Content;
 using WorkoutTracker.Data;
 using WorkoutTracker.Models;
+using Android.Content.PM;
+using Android.Content.Res;
 
 namespace WorkoutTracker.Views
 {
-    [Activity(Label = "Select Exercise")]
+    [Activity(
+    Label = "Select Exercise",
+    ScreenOrientation = ScreenOrientation.Portrait,
+    ConfigurationChanges = ConfigChanges.Orientation | ConfigChanges.ScreenSize | ConfigChanges.KeyboardHidden)]
     public class SelectExerciseActivity : AppCompatActivity
     {
         private Button btnAddNewExercise;
@@ -13,11 +18,18 @@ namespace WorkoutTracker.Views
         private ListView lvExerciseList;
         private List<Exercise> exercises;
         private ArrayAdapter<string> adapter;
-
         protected override async void OnCreate(Bundle savedInstanceState)
         {
             base.OnCreate(savedInstanceState);
             SetContentView(Resource.Layout.activity_select_exercise);
+            RequestedOrientation = ScreenOrientation.Portrait;
+
+            bool isDarkTheme = (Resources.Configuration.UiMode & UiMode.NightMask) == UiMode.NightYes;
+            if (isDarkTheme && SupportActionBar != null)
+            {
+                var color = Android.Graphics.Color.ParseColor("#222222");
+                SupportActionBar.SetBackgroundDrawable(new Android.Graphics.Drawables.ColorDrawable(color));
+            }
 
             searchView = FindViewById<SearchView>(Resource.Id.searchViewExercises);
             lvExerciseList = FindViewById<ListView>(Resource.Id.lvExerciseList);
@@ -34,7 +46,7 @@ namespace WorkoutTracker.Views
             {
                 var selectedExercise = exercises[e.Position];
 
-                Android.App.AlertDialog.Builder builder = new Android.App.AlertDialog.Builder(this);
+                Android.App.AlertDialog.Builder builder = new Android.App.AlertDialog.Builder(this, Resource.Style.MyAlertDialogTheme);
                 builder.SetTitle($"Select Sets for {selectedExercise.Name}");
 
                 EditText input = new EditText(this)
@@ -60,7 +72,7 @@ namespace WorkoutTracker.Views
                     }
                 });
 
-                builder.SetNegativeButton("Cancel", (dialog, args) => {});
+                builder.SetNegativeButton("Cancel", (dialog, args) => { });
 
                 Android.App.AlertDialog dialog = builder.Create();
                 dialog.Show();
@@ -70,7 +82,7 @@ namespace WorkoutTracker.Views
             {
                 var selectedExercise = exercises[e.Position];
 
-                Android.App.AlertDialog.Builder builder = new Android.App.AlertDialog.Builder(this);
+                Android.App.AlertDialog.Builder builder = new Android.App.AlertDialog.Builder(this, Resource.Style.MyAlertDialogTheme);
                 builder.SetTitle("Delete Exercise");
                 builder.SetMessage($"Are you sure you want to delete \"{selectedExercise.Name}\"?");
                 builder.SetPositiveButton("Delete", async (dialog, args) =>
@@ -84,18 +96,19 @@ namespace WorkoutTracker.Views
                 builder.Show();
             };
 
-
             btnAddNewExercise.Click += (s, e) =>
             {
-                Android.App.AlertDialog.Builder builder = new Android.App.AlertDialog.Builder(this);
+                Android.App.AlertDialog.Builder builder = new Android.App.AlertDialog.Builder(this, Resource.Style.MyAlertDialogTheme);
                 builder.SetTitle("New Exercise Name");
 
                 EditText input = new EditText(this)
                 {
-                    InputType = Android.Text.InputTypes.ClassText
+                    InputType = Android.Text.InputTypes.TextFlagCapWords 
                 };
 
                 builder.SetView(input);
+
+                input.RequestFocus();
 
                 builder.SetPositiveButton("Add", async (dialog, args) =>
                 {

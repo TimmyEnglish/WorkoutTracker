@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <resources>
-	<!-- Light Theme -->
-	<style name="AppTheme" parent="Theme.MaterialComponents.Light.DarkActionBar">
+	<!-- Dark Theme -->
+	<style name="AppTheme" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
 		<item name="colorPrimary">@color/colorPrimary</item>
 		<item name="colorPrimaryVariant">@color/colorPrimaryVariant</item>
 		<item name="colorOnPrimary">@color/colorOnPrimary</item>
@@ -10,18 +10,18 @@
 		<item name="android:windowBackground">@color/background</item>
 		<item name="android:textColorPrimary">@color/onBackground</item>
 	</style>
-
+	
 	<style name="PrimaryButtonStyle" parent="Widget.MaterialComponents.Button">
 		<item name="android:backgroundTint">@color/colorPrimary</item>
 		<item name="android:textColor">@color/colorOnPrimary</item>
 	</style>
 
 	<style name="SecondaryButtonStyle" parent="Widget.MaterialComponents.Button">
-		<item name="android:backgroundTint">#EEEEEE</item>
+		<item name="android:backgroundTint">#222222</item>
 		<item name="android:textColor">@color/colorPrimary</item>
 	</style>
 
-	<style name="MyAlertDialogTheme" parent="Theme.MaterialComponents.Light.Dialog.Alert">
+	<style name="MyAlertDialogTheme" parent="Theme.MaterialComponents.DayNight.Dialog.Alert">
 		<item name="colorPrimary">@color/colorPrimary</item>
 		<item name="colorOnPrimary">@color/colorOnPrimary</item>
 		<item name="android:background">@color/surface</item>

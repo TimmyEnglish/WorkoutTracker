@@ -1,13 +1,16 @@
-﻿using Android.App;
-using Android.Content;
-using Android.OS;
-using Android.Widget;
+﻿using Android.Content;
+using Android.Content.PM;
 using WorkoutTracker.Data;
 using WorkoutTracker.Models;
 
 namespace WorkoutTracker.Views
 {
-    [Activity(Label = "Workout Tracker", MainLauncher = true)]
+    [Activity(
+    Label = "Workout Tracker",
+    MainLauncher = true,
+    ScreenOrientation = ScreenOrientation.Portrait,
+    ConfigurationChanges = ConfigChanges.Orientation | ConfigChanges.ScreenSize | ConfigChanges.KeyboardHidden,
+    LaunchMode = LaunchMode.SingleTop)]
     public class MainActivity : Activity
     {
         private List<Exercise> exercises;
@@ -16,6 +19,7 @@ namespace WorkoutTracker.Views
         {
             base.OnCreate(savedInstanceState);
             SetContentView(Resource.Layout.activity_main);
+            RequestedOrientation = ScreenOrientation.Portrait;
 
             var btnManageTemplates = FindViewById<Button>(Resource.Id.btnManageTemplates)
                 ?? throw new NullReferenceException("btnManageTemplates not found");
@@ -35,7 +39,8 @@ namespace WorkoutTracker.Views
         }
         private void ShowNewWorkoutDialog()
         {
-            AlertDialog.Builder dialogBuilder = new AlertDialog.Builder(this);
+            Android.App.AlertDialog.Builder dialogBuilder = new Android.App.AlertDialog.Builder(this, Resource.Style.MyAlertDialogTheme);
+
             dialogBuilder.SetTitle("New Workout")
                 .SetItems(new string[] { "Start from Template", "Start Empty Workout" }, (sender, e) =>
                 {
@@ -60,6 +65,10 @@ namespace WorkoutTracker.Views
             DatabaseHelper.Instance.CloseDatabase().Wait();
             base.OnDestroy();
         }
-
+        public override void OnBackPressed()
+        {
+            FinishAffinity();
+            Android.OS.Process.KillProcess(Android.OS.Process.MyPid());
+        }
     }
 }

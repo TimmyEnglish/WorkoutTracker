@@ -7,20 +7,18 @@ namespace WorkoutTracker.Views
     public class WorkoutSessionAdapter : RecyclerView.Adapter
     {
         private readonly List<WorkoutExerciseEntry> exercises;
-
-        public WorkoutSessionAdapter(List<WorkoutExerciseEntry> exercises)
+        private readonly Action SaveTemporaryState;
+        public WorkoutSessionAdapter(List<WorkoutExerciseEntry> exercises, Action saveTemporaryState)
         {
             this.exercises = exercises;
+            SaveTemporaryState = saveTemporaryState;
         }
-
         public override int ItemCount => exercises.Count;
-
         public override RecyclerView.ViewHolder OnCreateViewHolder(ViewGroup parent, int viewType)
         {
             var view = LayoutInflater.From(parent.Context).Inflate(Resource.Layout.item_freestyle_exercise, parent, false);
-            return new ExerciseViewHolder(view);
+            return new ExerciseViewHolder(view, SaveTemporaryState);
         }
-
         public override void OnBindViewHolder(RecyclerView.ViewHolder holder, int position)
         {
             if (holder is ExerciseViewHolder vh)
@@ -28,16 +26,17 @@ namespace WorkoutTracker.Views
                 vh.Bind(exercises[position]);
             }
         }
-
         private class ExerciseViewHolder : RecyclerView.ViewHolder
         {
             private readonly TextView txtExerciseName;
             private readonly LinearLayout layoutSets;
+            private readonly Action SaveTemporaryState;
 
-            public ExerciseViewHolder(View itemView) : base(itemView)
+            public ExerciseViewHolder(View itemView, Action saveTemporaryState) : base(itemView)
             {
                 txtExerciseName = itemView.FindViewById<TextView>(Resource.Id.txtExerciseName);
                 layoutSets = itemView.FindViewById<LinearLayout>(Resource.Id.layoutSets);
+                SaveTemporaryState = saveTemporaryState;
             }
 
             public void Bind(WorkoutExerciseEntry exercise)
@@ -61,27 +60,37 @@ namespace WorkoutTracker.Views
                     edtWeight.Text = set.Weight?.ToString() ?? "";
                     edtReps.Text = set.Reps?.ToString() ?? "";
 
-                    // Clear any existing event handlers
-                    edtWeight.TextChanged += (s, e) =>
+                    // Unsubscribe from previous events to avoid stacking event handlers
+                    edtWeight.TextChanged -= OnWeightTextChanged;
+                    edtReps.TextChanged -= OnRepsTextChanged;
+
+                    // Attach new event handlers
+                    edtWeight.TextChanged += OnWeightTextChanged;
+                    edtReps.TextChanged += OnRepsTextChanged;
+
+                    void OnWeightTextChanged(object sender, Android.Text.TextChangedEventArgs e)
                     {
                         if (double.TryParse(edtWeight.Text, out double weight))
                             set.Weight = weight;
                         else
                             set.Weight = null;
-                    };
 
-                    edtReps.TextChanged += (s, e) =>
+                        SaveTemporaryState.Invoke(); // Save state immediately on text change
+                    }
+
+                    void OnRepsTextChanged(object sender, Android.Text.TextChangedEventArgs e)
                     {
                         if (int.TryParse(edtReps.Text, out int reps))
                             set.Reps = reps;
                         else
                             set.Reps = null;
-                    };
+
+                        SaveTemporaryState.Invoke(); // Save state immediately on text change
+                    }
 
                     layoutSets.AddView(setView);
                 }
             }
-
         }
     }
 }

@@ -1,38 +1,47 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:gravity="center"
-    android:padding="16dp">
+    android:padding="24dp"
+    android:background="?android:colorBackground">
 
 	<TextView
-		android:layout_width="wrap_content"
-		android:layout_height="wrap_content"
-		android:text="Workout Tracker"
-		android:textSize="24sp"
-		android:textStyle="bold"
-		android:layout_gravity="center"
-		android:paddingBottom="20dp" />
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Workout Tracker"
+        android:textSize="28sp"
+        android:textStyle="bold"
+        android:textColor="?android:textColorPrimary"
+        android:layout_gravity="center"
+        android:paddingBottom="32dp" />
 
-	<Button
-		android:id="@+id/btnNewWorkout"
-		android:layout_width="match_parent"
-		android:layout_height="wrap_content"
-		android:text="New Workout" />
+	<com.google.android.material.button.MaterialButton
+        android:id="@+id/btnNewWorkout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="New Workout"
+        style="@style/PrimaryButtonStyle"
+        app:cornerRadius="4dp" />
 
-	<Button
-		android:id="@+id/btnViewStats"
-		android:layout_width="match_parent"
-		android:layout_height="wrap_content"
-		android:text="View Stats"
-		android:layout_marginTop="10dp" />
-	
-	<Button
-		android:id="@+id/btnManageTemplates"
-		android:layout_width="match_parent"
-		android:layout_height="wrap_content"
-		android:text="Manage Templates"
-		android:layout_marginTop="10dp" />
+	<com.google.android.material.button.MaterialButton
+        android:id="@+id/btnViewStats"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="View Stats"
+        style="@style/SecondaryButtonStyle"
+        android:layout_marginTop="16dp"
+        app:cornerRadius="4dp" />
+
+	<com.google.android.material.button.MaterialButton
+        android:id="@+id/btnManageTemplates"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Manage Templates"
+        style="@style/SecondaryButtonStyle"
+        android:layout_marginTop="16dp"
+        app:cornerRadius="4dp" />
 
 </LinearLayout>

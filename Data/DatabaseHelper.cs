@@ -22,18 +22,16 @@ namespace WorkoutTracker.Data
                 }
             }
         }
-
         public DatabaseHelper()
         {
             if (!_isDatabaseReset)
             {
-                ResetDatabase(); // TEMPORARY
+                //ResetDatabase(); // TEMPORARY
                 _isDatabaseReset = true;
             }
             _database = new SQLiteAsyncConnection(dbPath, SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.Create);
             InitializeDatabase();
         }
-
         private void ResetDatabase()
         {
             try
@@ -49,7 +47,6 @@ namespace WorkoutTracker.Data
                 Log.Error("DatabaseHelper", $"Error deleting database: {ex.Message}");
             }
         }
-
         private async void InitializeDatabase()
         {
             await _database.CreateTableAsync<Exercise>();
@@ -73,13 +70,11 @@ namespace WorkoutTracker.Data
                 Log.Error("DatabaseHelper", $"Error copying database: {ex.Message}");
             }
         }
-
         private async Task<bool> IsDatabaseEmpty()
         {
             var count = await _database.Table<WorkoutTemplate>().CountAsync();
             return count == 0;
         }
-
         private async Task AddDefaultData()
         {
             try
@@ -123,7 +118,6 @@ namespace WorkoutTracker.Data
                 return -1;
             }
         }
-
         public async Task DeleteExerciseAsync(Exercise exercise)
         {
             try
@@ -135,7 +129,6 @@ namespace WorkoutTracker.Data
                 Log.Error("DatabaseHelper", $"Error deleting exercise: {ex.Message}");
             }
         }
-
         public async Task<List<Exercise>> GetExercisesAsync()
         {
             try
@@ -148,7 +141,6 @@ namespace WorkoutTracker.Data
                 return new List<Exercise>();
             }
         }
-
         public async Task<Exercise?> GetExerciseByIdAsync(int id)
         {
             try
@@ -176,7 +168,6 @@ namespace WorkoutTracker.Data
                 return -1;
             }
         }
-
         public async Task<int> AddWorkoutTemplateAndReturnIdAsync(WorkoutTemplate template)
         {
             try
@@ -190,7 +181,6 @@ namespace WorkoutTracker.Data
                 return -1;
             }
         }
-
         public async Task<List<WorkoutTemplate>> GetWorkoutTemplatesAsync()
         {
             try
@@ -203,7 +193,6 @@ namespace WorkoutTracker.Data
                 return new List<WorkoutTemplate>();
             }
         }
-
         public async Task<WorkoutTemplate?> GetWorkoutTemplateByIdAsync(int id)
         {
             try
@@ -216,7 +205,6 @@ namespace WorkoutTracker.Data
                 return null;
             }
         }
-
         public async Task UpdateWorkoutTemplateAsync(WorkoutTemplate template)
         {
             try
@@ -228,7 +216,6 @@ namespace WorkoutTracker.Data
                 Log.Error("DatabaseHelper", $"Error updating workout template: {ex.Message}");
             }
         }
-
         public async Task DeleteWorkoutTemplateAsync(int id)
         {
             try
@@ -247,10 +234,18 @@ namespace WorkoutTracker.Data
 
         // --- WorkoutLog ---
 
-        public async Task<int> AddWorkoutLogAsync(WorkoutLog log)
+        public async Task<int> AddWorkoutLogAsync(int exerciseId, int reps, double weight)
         {
             try
             {
+                var log = new WorkoutLog
+                {
+                    ExerciseId = exerciseId,
+                    Weight = weight,
+                    Reps = reps,
+                    Date = DateTime.Now
+                };
+
                 return await _database.InsertAsync(log);
             }
             catch (Exception ex)
@@ -259,7 +254,6 @@ namespace WorkoutTracker.Data
                 return -1;
             }
         }
-
         public async Task<List<WorkoutLog>> GetWorkoutLogsByExerciseAsync(int exerciseId)
         {
             try
@@ -270,6 +264,22 @@ namespace WorkoutTracker.Data
             {
                 Log.Error("DatabaseHelper", $"Error fetching workout logs: {ex.Message}");
                 return new List<WorkoutLog>();
+            }
+        }
+        public async Task DeleteWorkoutLogAsync(int logId)
+        {
+            try
+            {
+                var log = await _database.Table<WorkoutLog>().Where(l => l.Id == logId).FirstOrDefaultAsync();
+                if (log != null)
+                {
+                    await _database.DeleteAsync(log);
+                    Log.Debug("DatabaseHelper", $"Deleted workout log with ID {logId}.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error("DatabaseHelper", $"Error deleting workout log: {ex.Message}");
             }
         }
 
