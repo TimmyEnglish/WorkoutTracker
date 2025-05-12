@@ -266,6 +266,14 @@ namespace WorkoutTracker.Data
                 return new List<WorkoutLog>();
             }
         }
+        public async Task<List<WorkoutLog>> GetAllWorkoutLogsAsync()
+        {
+            return await _database.Table<WorkoutLog>().ToListAsync();
+        }
+        public async Task UpdateWorkoutLogAsync(WorkoutLog log)
+        {
+            await _database.UpdateAsync(log);
+        }
         public async Task DeleteWorkoutLogAsync(int logId)
         {
             try

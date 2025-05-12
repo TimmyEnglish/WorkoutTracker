@@ -57,7 +57,10 @@ namespace WorkoutTracker.Views
         private async void SpnExercises_ItemSelected(object? sender, AdapterView.ItemSelectedEventArgs e)
         {
             int selectedExerciseId = exercises[e.Position].Id;
-            currentLogs = await db.GetWorkoutLogsByExerciseAsync(selectedExerciseId);
+            currentLogs = (await db.GetWorkoutLogsByExerciseAsync(selectedExerciseId))
+            .OrderByDescending(log => log.Date)
+            .ToList();
+
 
             UpdatePlot(currentLogs);
             UpdateList(currentLogs);
@@ -130,8 +133,8 @@ namespace WorkoutTracker.Views
                 MinorGridlineStyle = LineStyle.Dot,
                 IsZoomEnabled = true,
                 IsPanEnabled = true,
-                MinimumPadding = 0.20,  
-                MaximumPadding = 0.20, 
+                MinimumPadding = 0.20,
+                MaximumPadding = 0.20,
                 TextColor = isDarkTheme ? OxyColors.LightGray : OxyColors.Black,
                 TitleColor = isDarkTheme ? OxyColors.LightGray : OxyColors.Black,
                 MajorGridlineColor = OxyColor.Parse(isDarkTheme ? "#333333" : "#CCCCCC"),

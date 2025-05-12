@@ -146,26 +146,53 @@ namespace WorkoutTracker.Views
             {
                 foreach (var set in entry.Sets)
                 {
-                    if (set.Weight >= 0 && set.Reps > 0) 
+                    if (set.Weight >= 0 && set.Reps > 0)
                     {
+                        if (string.IsNullOrEmpty(entry.ExerciseName))
+                        {
+                            var exercise = await DatabaseHelper.Instance.GetExerciseByIdAsync(entry.ExerciseId);
+                            entry.ExerciseName = exercise?.Name ?? "Unknown";
+                        }
+
                         var log = new WorkoutLog
                         {
                             ExerciseId = entry.ExerciseId,
                             ExerciseName = entry.ExerciseName,
                             Weight = set.Weight ?? 0.0,
-                            Reps = set.Reps ?? 0, 
+                            Reps = set.Reps ?? 0,
                             Date = DateTime.Now
                         };
 
-                        await DatabaseHelper.Instance.AddWorkoutLogAsync(entry.ExerciseId, set.Reps ?? 0, set.Weight ?? 0.0);
+                        await DatabaseHelper.Instance.AddWorkoutLogAsync(entry.ExerciseId, log.Reps, log.Weight);
                     }
                 }
             }
+
+            await FixWorkoutLogNamesInMemoryAsync();
+
             Toast.MakeText(this, "Workout saved!", ToastLength.Long).Show();
+
             var intent = new Intent(this, typeof(MainActivity));
             intent.SetFlags(ActivityFlags.ClearTop | ActivityFlags.NewTask);
             StartActivity(intent);
             Finish();
+        }
+        private async Task FixWorkoutLogNamesInMemoryAsync()
+        {
+            var logs = await DatabaseHelper.Instance.GetAllWorkoutLogsAsync();
+
+            foreach (var log in logs)
+            {
+                if (string.IsNullOrWhiteSpace(log.ExerciseName))
+                {
+                    var exercise = await DatabaseHelper.Instance.GetExerciseByIdAsync(log.ExerciseId);
+                    if (exercise != null)
+                    {
+                        log.ExerciseName = exercise.Name;
+                        await DatabaseHelper.Instance.UpdateWorkoutLogAsync(log);
+                    }
+                }
+            }
         }
         private void SaveTemporaryState()
         {
@@ -175,7 +202,7 @@ namespace WorkoutTracker.Views
             editor.PutString(WorkoutStateKey, json);
             editor.Apply();
         }
-        private void LoadTemporaryState()
+        private async void LoadTemporaryState()
         {
             var prefs = GetSharedPreferences("WorkoutPrefs", FileCreationMode.Private);
             string json = prefs.GetString(WorkoutStateKey, null);
@@ -184,10 +211,21 @@ namespace WorkoutTracker.Views
             {
                 var restored = JsonConvert.DeserializeObject<List<WorkoutExerciseEntry>>(json);
                 if (restored != null)
+                {
+                    foreach (var entry in restored)
+                    {
+                        if (string.IsNullOrEmpty(entry.ExerciseName))
+                        {
+                            var exercise = await DatabaseHelper.Instance.GetExerciseByIdAsync(entry.ExerciseId);
+                            entry.ExerciseName = exercise?.Name ?? "Unknown";
+                        }
+                    }
                     exerciseEntries = restored;
-                Toast.MakeText(this, "Workout resumed!", ToastLength.Short).Show();
+                    Toast.MakeText(this, "Workout resumed!", ToastLength.Short).Show();
+                }
             }
         }
+
         private void ClearTemporaryState()
         {
             var prefs = GetSharedPreferences("WorkoutPrefs", FileCreationMode.Private);
