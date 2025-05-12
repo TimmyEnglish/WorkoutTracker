@@ -59,47 +59,73 @@ namespace WorkoutTracker.Views
                     return;
                 }
 
-                var templateNames = templates.Select(t => t.Name).ToList();
+                var templateNames = new List<string> { "-- Select a template --" };
+                templateNames.AddRange(templates.Select(t => t.Name));
                 adapter = new ArrayAdapter<string>(this, Android.Resource.Layout.SimpleSpinnerDropDownItem, templateNames);
                 spnTemplates.Adapter = adapter;
 
-                // Select the first template by default
-                spnTemplates.SetSelection(0);
-                selectedTemplate = templates[0];
-                await LoadWorkoutExercises(selectedTemplate);
+                spnTemplates.SetSelection(0); // Placeholder selected by default
+                selectedTemplate = null;
+                LoadDefaultWorkoutMessage(); // Show default message in ListView
             }
             catch (Exception ex)
             {
                 Toast.MakeText(this, "Error loading templates: " + ex.Message, ToastLength.Long).Show();
             }
         }
+        private void LoadDefaultWorkoutMessage()
+        {
+            if (lvWorkoutExercises == null) return;
+
+            var defaultMsg = new List<string> { "You can select a workout template, or start an empty workout." };
+            RunOnUiThread(() =>
+            {
+                var adapter = new ArrayAdapter<string>(this, Android.Resource.Layout.SimpleListItem1, defaultMsg);
+                lvWorkoutExercises.Adapter = adapter;
+                adapter.NotifyDataSetChanged();
+            });
+        }
         private async void SpnTemplates_ItemSelected(object? sender, AdapterView.ItemSelectedEventArgs e)
         {
+            if (e.Position == 0)
+            {
+                selectedTemplate = null;
+                LoadDefaultWorkoutMessage();
+                return;
+            }
+
             if (templates == null || templates.Count == 0) return;
 
-            selectedTemplate = templates[e.Position];
+            selectedTemplate = templates[e.Position - 1]; // offset by 1 because of placeholder
             await LoadWorkoutExercises(selectedTemplate);
         }
-        private async void BtnStartFromTemplate_Click(object? sender, EventArgs e)
+        private void BtnStartFromTemplate_Click(object? sender, EventArgs e)
         {
+            if (spnTemplates == null) return;
+
+            if (spnTemplates.SelectedItemPosition == 0)
+            {
+                // Placeholder selected — start empty workout
+                var intent = new Intent(this, typeof(WorkoutSessionActivity));
+                intent.PutExtra("ExerciseSets", string.Empty); // No data passed
+                StartActivity(intent);
+                return;
+            }
+
             if (templates == null || templates.Count == 0)
             {
                 Toast.MakeText(this, "No templates available!", ToastLength.Short).Show();
                 return;
             }
 
-            // Get the selected template and load its exercises
-            selectedTemplate = templates[spnTemplates.SelectedItemPosition];
-            await LoadWorkoutExercises(selectedTemplate);
-
+            selectedTemplate = templates[spnTemplates.SelectedItemPosition - 1]; // offset by 1
             string cleanedData = CleanExerciseSetString(selectedTemplate.ExerciseSets);
 
-            Intent intent;
-            intent = new Intent(this, typeof(WorkoutSessionActivity));
-
-            intent.PutExtra("ExerciseSets", cleanedData);
-            StartActivity(intent);
+            var workoutIntent = new Intent(this, typeof(WorkoutSessionActivity));
+            workoutIntent.PutExtra("ExerciseSets", cleanedData);
+            StartActivity(workoutIntent);
         }
+
         private string CleanExerciseSetString(string exerciseSets)
         {
             if (string.IsNullOrEmpty(exerciseSets)) return string.Empty;

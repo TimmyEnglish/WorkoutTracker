@@ -33,32 +33,9 @@ namespace WorkoutTracker.Views
             btnNewWorkout.Click += (s, e) =>
             {
                 var intentTemplate = new Intent(this, typeof(StartWorkoutActivity));
-                ShowNewWorkoutDialog();
+                StartActivity(intentTemplate);
             };
             db = new DatabaseHelper();
-        }
-        private void ShowNewWorkoutDialog()
-        {
-            Android.App.AlertDialog.Builder dialogBuilder = new Android.App.AlertDialog.Builder(this, Resource.Style.MyAlertDialogTheme);
-
-            dialogBuilder.SetTitle("New Workout")
-                .SetItems(new string[] { "Start from Template", "Start Empty Workout" }, (sender, e) =>
-                {
-                    switch (e.Which)
-                    {
-                        case 0:
-                            var intentTemplate = new Intent(this, typeof(StartWorkoutActivity));
-                            StartActivity(intentTemplate);
-                            break;
-
-                        case 1:
-                            var intentSession = new Intent(this, typeof(WorkoutSessionActivity));
-                            StartActivity(intentSession);
-                            break;
-                    }
-                });
-
-            dialogBuilder.Create().Show();
         }
         protected override void OnDestroy()
         {

@@ -103,7 +103,7 @@ namespace WorkoutTracker.Views
 
                 EditText input = new EditText(this)
                 {
-                    InputType = Android.Text.InputTypes.TextFlagCapWords 
+                    InputType = Android.Text.InputTypes.ClassText | Android.Text.InputTypes.TextFlagCapSentences
                 };
 
                 builder.SetView(input);

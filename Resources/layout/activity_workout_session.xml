@@ -14,7 +14,9 @@
 		<androidx.recyclerview.widget.RecyclerView
             android:id="@+id/recyclerFreestyleWorkout"
             android:layout_width="match_parent"
-            android:layout_height="match_parent" />
+            android:layout_height="match_parent"
+			android:paddingBottom="96dp"
+            android:clipToPadding="false"/>
 
 		<TextView
             android:id="@+id/txtNoExercises"

@@ -24,7 +24,7 @@
         android:id="@+id/btnStartFromTemplate"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Start from Template"
+        android:text="Start Workout"
         android:layout_marginBottom="36dp"/>
 
 </LinearLayout>
